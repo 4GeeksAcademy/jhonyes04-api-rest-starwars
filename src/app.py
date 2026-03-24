@@ -116,8 +116,8 @@ def get_recursos(tipo_recurso):
     if tipo_recurso not in MODEL_MAP:
         return jsonify({'msg': f"El recurso '{tipo_recurso}' no es válido"}), 404
 
-    Model = MODEL_MAP[tipo_recurso]["model"]
-    items = db.session.execute(db.select(Model)).scalars().all()
+    model = MODEL_MAP[tipo_recurso]["model"]
+    items = db.session.execute(db.select(model)).scalars().all()
 
     return jsonify([item.serialize() for item in items]), 200
 
@@ -127,8 +127,8 @@ def get_recursos_id(tipo_recurso, item_id):
     if tipo_recurso not in MODEL_MAP:
         return jsonify({'msg': "Recurso no válido"}), 404
 
-    Model = MODEL_MAP[tipo_recurso]['model']
-    item = db.session.get(Model, item_id)
+    model = MODEL_MAP[tipo_recurso]['model']
+    item = db.session.get(model, item_id)
 
     if not item:
         return jsonify({'msg': f"ID {item_id} no encontrado en {tipo_recurso}"}), 404
@@ -145,8 +145,8 @@ def post_recurso(tipo_recurso):
     if not data:
         return jsonify({'msg': 'Todos los campos son obligatorios'}), 400
 
-    Model = MODEL_MAP[tipo_recurso]['model']
-    nuevo_item = Model(
+    model = MODEL_MAP[tipo_recurso]['model']
+    nuevo_item = model(
         name=data['name'],
         description=data['description'],
         image=data['image']
@@ -166,9 +166,9 @@ def put_recurso(tipo_recurso, item_id):
     if not data:
         return jsonify({'msg': 'JSON no proporcionado'}), 400
 
-    Model = MODEL_MAP[tipo_recurso]['model']
+    model = MODEL_MAP[tipo_recurso]['model']
 
-    item = db.session.get(Model, item_id)
+    item = db.session.get(model, item_id)
 
     if not item:
         return jsonify({'msg': f"No se encontró {tipo_recurso[:-1]} con ID {item_id}"}), 404
@@ -186,9 +186,9 @@ def delete_recurso(tipo_recurso, item_id):
     if tipo_recurso not in MODEL_MAP:
         return jsonify({'msg': f'El recurso {tipo_recurso} no es válido'}), 404
 
-    Model = MODEL_MAP[tipo_recurso]['model']
+    model = MODEL_MAP[tipo_recurso]['model']
 
-    item = db.session.get(Model, item_id)
+    item = db.session.get(model, item_id)
 
     if not item:
         return jsonify({'msg': f'No se encontró {tipo_recurso[:-1]} con ID {item_id}'}), 404
@@ -207,22 +207,22 @@ def post_favoritos(tipo_recurso, item_id):
         return jsonify({'msg': 'Recurso no válido'}), 404
 
     user_id = 1
-    Model = MODEL_MAP[tipo_recurso]
+    model = MODEL_MAP[tipo_recurso]
 
-    if not db.session.get(Model['model'], item_id):
+    if not db.session.get(model['model'], item_id):
         return jsonify({'msg': f'El {tipo_recurso} con ID {item_id} no existe'}), 404
 
     existe = db.session.execute(db.select(Favorito).filter_by(
         user_id=user_id,
         recurso_id=item_id,
-        tipo=Model['tipo']
+        tipo=model['tipo']
     )).scalar()
 
     if existe:
         return jsonify({'msg': 'Ya está en favoritos'}), 400
 
     nuevo_favorito = Favorito(
-        user_id=user_id, recurso_id=item_id, tipo=Model['tipo'])
+        user_id=user_id, recurso_id=item_id, tipo=model['tipo'])
     db.session.add(nuevo_favorito)
     db.session.commit()
     return jsonify(nuevo_favorito.serialize()), 201
