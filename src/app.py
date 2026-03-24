@@ -79,321 +79,150 @@ def post_users():
     db.session.commit()
     return jsonify(nuevo_usuario.serialize()), 201
 
-# PERSONAJES
+
+@app.route('/api/users/favoritos', methods=['GET'])
+def get_users_favoritos():
+    user_id = 1
+    usuario = db.session.get(User, user_id)
+
+    if not usuario:
+        return jsonify({'msg': 'Usuario no encontrado'}), 404
+
+    return jsonify(usuario.serialize()), 200
 
 
-@app.route('/api/personajes', methods=['GET'])
-def get_personajes():
+# RECURSOS
+MODEL_MAP = {
+    'personajes':
+    {'model': Personaje, "tipo": TipoRecurso.PERSONAJE},
+    'vehiculos':
+    {'model': Vehiculo, "tipo": TipoRecurso.VEHICULO},
+    'lugares':
+    {'model': Lugar, "tipo": TipoRecurso.LUGAR},
+    'criaturas':
+    {'model': Criatura, "tipo": TipoRecurso.CRIATURA},
+    'droides':
+    {'model': Droide, "tipo": TipoRecurso.DROIDE},
+    'organizaciones':
+    {'model': Organizacion,
+     "tipo": TipoRecurso.ORGANIZACION},
+    'especies':
+    {'model': Especie, "tipo": TipoRecurso.ESPECIE},
+}
 
-    personajes = db.session.execute(db.select(Personaje)).scalars().all()
 
-    if not personajes:
-        return jsonify([]), 200
+@app.route('/api/<string:tipo_recurso>', methods=['GET'])
+def get_recursos(tipo_recurso):
+    if tipo_recurso not in MODEL_MAP:
+        return jsonify({'msg': f"El recurso '{tipo_recurso}' no es válido"}), 404
 
-    return jsonify([personaje.serialize() for personaje in personajes]), 200
+    Model = MODEL_MAP[tipo_recurso]["model"]
+    items = db.session.execute(db.select(Model)).scalars().all()
 
-
-@app.route('/api/personajes/<int:personaje_id>', methods=['GET'])
-def get_personaje(personaje_id):
-    personaje = db.session.get(Personaje, personaje_id)
-
-    if personaje is None:
-        return jsonify({"msg": f"Personaje con ID {personaje_id} no encontrado"}), 404
-
-    return jsonify(personaje.serialize()), 200
+    return jsonify([item.serialize() for item in items]), 200
 
 
-@app.route('/api/personajes', methods=['POST'])
-def post_personajes():
+@app.route('/api/<string:tipo_recurso>/<int:item_id>', methods=['GET'])
+def get_recursos_id(tipo_recurso, item_id):
+    if tipo_recurso not in MODEL_MAP:
+        return jsonify({'msg': "Recurso no válido"}), 404
+
+    Model = MODEL_MAP[tipo_recurso]['model']
+    item = db.session.get(Model, item_id)
+
+    if not item:
+        return jsonify({'msg': f"ID {item_id} no encontrado en {tipo_recurso}"}), 404
+
+    return jsonify(item.serialize()), 200
+
+
+@app.route('/api/<string:tipo_recurso>', methods=['POST'])
+def post_recurso(tipo_recurso):
+    if tipo_recurso not in MODEL_MAP:
+        return jsonify({'msg': 'Recurso no válido'}), 404
+
     data = request.get_json()
-
     if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
+        return jsonify({'msg': 'Todos los campos son obligatorios'}), 400
 
-    nuevo_personaje = Personaje(
+    Model = MODEL_MAP[tipo_recurso]['model']
+    nuevo_item = Model(
         name=data['name'],
         description=data['description'],
         image=data['image']
     )
 
-    db.session.add(nuevo_personaje)
+    db.session.add(nuevo_item)
     db.session.commit()
-    return jsonify(nuevo_personaje.serialize()), 201
-
-# VEHÍCULOS
+    return jsonify(nuevo_item.serialize()), 201
 
 
-@app.route('/api/vehiculos', methods=['GET'])
-def get_vehiculos():
+@app.route('/api/<string:tipo_recurso>/<int:item_id>', methods=['PUT'])
+def put_recurso(tipo_recurso, item_id):
+    if tipo_recurso not in MODEL_MAP:
+        return jsonify({'msg': f'El recurso {tipo_recurso} no es válido'}), 404
 
-    vehiculos = db.session.execute(db.select(Vehiculo)).scalars().all()
-
-    if not vehiculos:
-        return jsonify([]), 200
-
-    return jsonify([vehiculo.serialize() for vehiculo in vehiculos]), 200
-
-
-@app.route('/api/vehiculos/<int:vehiculo_id>', methods=['GET'])
-def get_vehiculo(vehiculo_id):
-    vehiculo = db.session.get(Vehiculo, vehiculo_id)
-
-    if vehiculo is None:
-        return jsonify({"msg": f"Vehículo con ID {vehiculo_id} no encontrado"}), 404
-
-    return jsonify(vehiculo.serialize()), 200
-
-
-@app.route('/api/vehiculos', methods=['POST'])
-def post_vehiculos():
     data = request.get_json()
-
     if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
+        return jsonify({'msg': 'JSON no proporcionado'}), 400
 
-    nuevo_vehiculo = Vehiculo(
-        name=data['name'],
-        description=data['description'],
-        image=data['image']
-    )
+    Model = MODEL_MAP[tipo_recurso]['model']
 
-    db.session.add(nuevo_vehiculo)
+    item = db.session.get(Model, item_id)
+
+    if not item:
+        return jsonify({'msg': f"No se encontró {tipo_recurso[:-1]} con ID {item_id}"}), 404
+
+    item.name = data.get('name', item.name)
+    item.description = data.get('description', item.description)
+    item.image = data.get('image', item.image)
+
     db.session.commit()
-    return jsonify(nuevo_vehiculo.serialize()), 201
-
-# LUGARES
+    return jsonify(item.serialize()), 201
 
 
-@app.route('/api/lugares', methods=['GET'])
-def get_lugares():
+@app.route('/api/<string:tipo_recurso>/<int:item_id>', methods=['DELETE'])
+def delete_recurso(tipo_recurso, item_id):
+    if tipo_recurso not in MODEL_MAP:
+        return jsonify({'msg': f'El recurso {tipo_recurso} no es válido'}), 404
 
-    lugares = db.session.execute(db.select(Lugar)).scalars().all()
+    Model = MODEL_MAP[tipo_recurso]['model']
 
-    if not lugares:
-        return jsonify([]), 200
+    item = db.session.get(Model, item_id)
 
-    return jsonify([lugar.serialize() for lugar in lugares]), 200
+    if not item:
+        return jsonify({'msg': f'No se encontró {tipo_recurso[:-1]} con ID {item_id}'}), 404
 
-
-@app.route('/api/lugares/<int:lugar_id>', methods=['GET'])
-def get_lugar(lugar_id):
-    lugar = db.session.get(Lugar, lugar_id)
-
-    if lugar is None:
-        return jsonify({"msg": f"Lugar con ID {lugar_id} no encontrado"}), 404
-
-    return jsonify(lugar.serialize()), 200
-
-
-@app.route('/api/lugares', methods=['POST'])
-def post_lugares():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
-
-    nuevo_lugar = Lugar(
-        name=data['name'],
-        description=data['description'],
-        image=data['image']
-    )
-
-    db.session.add(nuevo_lugar)
+    db.session.delete(item)
     db.session.commit()
-    return jsonify(nuevo_lugar.serialize()), 201
 
-# CRIATURAS
-
-
-@app.route('/api/criaturas', methods=['GET'])
-def get_criaturas():
-
-    criaturas = db.session.execute(db.select(Criatura)).scalars().all()
-
-    if not criaturas:
-        return jsonify([]), 200
-
-    return jsonify([criatura.serialize() for criatura in criaturas]), 200
-
-
-@app.route('/api/criaturas/<int:criatura_id>', methods=['GET'])
-def get_criatura(criatura_id):
-    criatura = db.session.get(Criatura, criatura_id)
-
-    if criatura is None:
-        return jsonify({"msg": f"Criatura con ID {criatura_id} no encontrado"}), 404
-
-    return jsonify(criatura.serialize()), 200
-
-
-@app.route('/api/criaturas', methods=['POST'])
-def post_criaturas():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
-
-    nueva_criatura = Criatura(
-        name=data['name'],
-        description=data['description'],
-        image=data['image']
-    )
-
-    db.session.add(nueva_criatura)
-    db.session.commit()
-    return jsonify(nueva_criatura.serialize()), 201
-
-# DROIDES
-
-
-@app.route('/api/droides', methods=['GET'])
-def get_droides():
-
-    droides = db.session.execute(db.select(Droide)).scalars().all()
-
-    if not droides:
-        return jsonify([]), 200
-
-    return jsonify([droide.serialize() for droide in droides]), 200
-
-
-@app.route('/api/droides/<int:droide_id>', methods=['GET'])
-def get_droide(droide_id):
-    droide = db.session.get(Droide, droide_id)
-
-    if droide is None:
-        return jsonify({"msg": f"Droide con ID {droide_id} no encontrado"}), 404
-
-    return jsonify(droide.serialize()), 200
-
-
-@app.route('/api/droides', methods=['POST'])
-def post_droides():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
-
-    nuevo_droide = Droide(
-        name=data['name'],
-        description=data['description'],
-        image=data['image']
-    )
-
-    db.session.add(nuevo_droide)
-    db.session.commit()
-    return jsonify(nuevo_droide.serialize()), 201
-
-# ORGANIZACIONES
-
-
-@app.route('/api/organizaciones', methods=['GET'])
-def get_organizaciones():
-
-    organizaciones = db.session.execute(
-        db.select(Organizacion)).scalars().all()
-
-    if not organizaciones:
-        return jsonify([]), 200
-
-    return jsonify([organizacion.serialize() for organizacion in organizaciones]), 200
-
-
-@app.route('/api/organizaciones/<int:organizacion_id>', methods=['GET'])
-def get_organizacion(organizacion_id):
-    organizacion = db.session.get(Organizacion, organizacion_id)
-
-    if organizacion is None:
-        return jsonify({"msg": f"Organización con ID {organizacion_id} no encontrada"}), 404
-
-    return jsonify(organizacion.serialize()), 200
-
-
-@app.route('/api/organizaciones', methods=['POST'])
-def post_organizaciones():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
-
-    nueva_organizacion = Organizacion(
-        name=data['name'],
-        description=data['description'],
-        image=data['image']
-    )
-
-    db.session.add(nueva_organizacion)
-    db.session.commit()
-    return jsonify(nueva_organizacion.serialize()), 201
-
-# ESPECIES
-
-
-@app.route('/api/especies', methods=['GET'])
-def get_especies():
-
-    especies = db.session.execute(
-        db.select(Especie)).scalars().all()
-
-    if not especies:
-        return jsonify([]), 200
-
-    return jsonify([especie.serialize() for especie in especies]), 200
-
-
-@app.route('/api/especies/<int:especie_id>', methods=['GET'])
-def get_especie(especie_id):
-    especie = db.session.get(Especie, especie_id)
-
-    if especie is None:
-        return jsonify({"msg": f"Especie con ID {especie_id} no encontrada"}), 404
-
-    return jsonify(especie.serialize()), 200
-
-
-@app.route('/api/especies', methods=['POST'])
-def post_especies():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
-
-    nueva_especie = Especie(
-        name=data['name'],
-        description=data['description'],
-        image=data['image']
-    )
-
-    db.session.add(nueva_especie)
-    db.session.commit()
-    return jsonify(nueva_especie.serialize()), 201
+    return jsonify({'msg': f'{tipo_recurso[:-1].capitalize()} eliminado correctamente', "id_eliminado": item_id}), 200
 
 # FAVORITOS
 
 
-@app.route('/api/favoritos/personajes/<int:personaje_id>', methods=['POST'])
-def post_personaje_favorito(personaje_id):
-    user_id = 1
+@app.route('/api/favoritos/<string:tipo_recurso>/<int:item_id>', methods=['POST'])
+def post_favoritos(tipo_recurso, item_id):
+    if tipo_recurso not in MODEL_MAP:
+        return jsonify({'msg': 'Recurso no válido'}), 404
 
-    personaje = db.session.get(Personaje, personaje_id)
-    if not personaje:
-        return jsonify({'msg': f'El personaje con ID {personaje_id} no existe'}), 404
+    user_id = 1
+    Model = MODEL_MAP[tipo_recurso]
+
+    if not db.session.get(Model['model'], item_id):
+        return jsonify({'msg': f'El {tipo_recurso} con ID {item_id} no existe'}), 404
 
     existe = db.session.execute(db.select(Favorito).filter_by(
         user_id=user_id,
-        recurso_id=personaje_id,
-        tipo=TipoRecurso.PERSONAJE
+        recurso_id=item_id,
+        tipo=Model['tipo']
     )).scalar()
 
     if existe:
-        return jsonify({'msg': "Este personaje ya están en favoritos para este usuario"}), 400
+        return jsonify({'msg': 'Ya está en favoritos'}), 400
 
     nuevo_favorito = Favorito(
-        user_id=user_id,
-        recurso_id=personaje_id,
-        tipo=TipoRecurso.PERSONAJE
-    )
-
+        user_id=user_id, recurso_id=item_id, tipo=Model['tipo'])
     db.session.add(nuevo_favorito)
     db.session.commit()
     return jsonify(nuevo_favorito.serialize()), 201

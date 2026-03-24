@@ -54,10 +54,28 @@ class Favorito(db.Model):
     user: Mapped['User'] = relationship(back_populates='favoritos')
 
     def serialize(self):
+        mapeo = {
+            TipoRecurso.PERSONAJE: Personaje,
+            TipoRecurso.VEHICULO: Vehiculo,
+            TipoRecurso.LUGAR: Lugar,
+            TipoRecurso.CRIATURA: Criatura,
+            TipoRecurso.DROIDE: Droide,
+            TipoRecurso.ORGANIZACION: Organizacion,
+            TipoRecurso.ESPECIE: Especie,
+        }
+
+        modelo_destino = mapeo.get(self.tipo)
+
+        detalles = db.session.get(
+            modelo_destino, self.recurso_id) if modelo_destino else None
+
         return {
             "id": self.id,
-            "recurso_id": self.recurso_id,
-            "tipo": self.tipo.value
+            # "recurso_id": self.recurso_id,
+            "tipo": self.tipo.value,
+            "name": detalles.name,
+            "description": detalles.description,
+            "image": detalles.image
         }
 
 
