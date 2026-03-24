@@ -46,12 +46,7 @@ def sitemap():
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
-
     usuarios = db.session.execute(db.select(User)).scalars().all()
-
-    if not usuarios:
-        return jsonify([]), 200
-
     return jsonify([user.serialize() for user in usuarios]), 200
 
 
@@ -59,7 +54,7 @@ def get_users():
 def get_user(user_id):
     usuario = db.session.get(User, user_id)
 
-    if usuario is None:
+    if not usuario:
         return jsonify({"msg": f"Usuario con ID {user_id} no encontrado"}), 404
 
     return jsonify(usuario.serialize()), 200
@@ -70,9 +65,9 @@ def post_users():
     data = request.get_json()
 
     if not data:
-        return jsonify({'error': 'No ha proporcionado un JSON data'}), 400
+        return jsonify({'error': 'No ha proporcionado un JSON'}), 400
 
-    nuevo_vehiculo = Vehiculo(
+    nuevo_usuario = User(
         email=data['email'],
         password=data['password'],
         firstname=data['firstname'],
@@ -80,9 +75,9 @@ def post_users():
         is_active=data['is_active'],
     )
 
-    db.session.add(nuevo_vehiculo)
+    db.session.add(nuevo_usuario)
     db.session.commit()
-    return jsonify(nuevo_vehiculo.serialize()), 201
+    return jsonify(nuevo_usuario.serialize()), 201
 
 # PERSONAJES
 
