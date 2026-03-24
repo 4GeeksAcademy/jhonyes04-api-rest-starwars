@@ -193,6 +193,12 @@ def delete_recurso(tipo_recurso, item_id):
     if not item:
         return jsonify({'msg': f'No se encontró {tipo_recurso[:-1]} con ID {item_id}'}), 404
 
+    favoritos_borrar = db.session.execute(db.select(Favorito).filter_by(
+        recurso_id=item_id, tipo=MODEL_MAP[tipo_recurso]['tipo'])).scalars().all()
+
+    for favorito in favoritos_borrar:
+        db.session.delete(favorito)
+
     db.session.delete(item)
     db.session.commit()
 
