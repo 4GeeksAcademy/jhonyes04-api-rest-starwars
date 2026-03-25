@@ -2,9 +2,8 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, request, jsonify
 from flask_migrate import Migrate
-from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
@@ -47,7 +46,7 @@ def sitemap():
 @app.route('/api/users', methods=['GET'])
 def get_users():
     usuarios = db.session.execute(db.select(User)).scalars().all()
-    return jsonify([user.serialize() for user in usuarios]), 200
+    return jsonify({'total': len(usuarios), 'users': [user.serialize() for user in usuarios]}), 200
 
 
 @app.route('/api/users/<int:user_id>', methods=['GET'])
@@ -57,7 +56,7 @@ def get_user(user_id):
     if not usuario:
         return jsonify({"msg": f"Usuario con ID {user_id} no encontrado"}), 404
 
-    return jsonify(usuario.serialize()), 200
+    return jsonify({'user': usuario.serialize()}), 200
 
 
 @app.route('/api/users', methods=['POST'])
@@ -77,7 +76,7 @@ def post_users():
 
     db.session.add(nuevo_usuario)
     db.session.commit()
-    return jsonify(nuevo_usuario.serialize()), 201
+    return jsonify({'user': nuevo_usuario.serialize()}), 201
 
 
 @app.route('/api/users/favoritos', methods=['GET'])
@@ -88,7 +87,7 @@ def get_users_favoritos():
     if not usuario:
         return jsonify({'msg': 'Usuario no encontrado'}), 404
 
-    return jsonify(usuario.serialize()), 200
+    return jsonify({'user': usuario.serialize()}), 200
 
 
 # RECURSOS
@@ -119,7 +118,7 @@ def get_recursos(tipo_recurso):
     model = MODEL_MAP[tipo_recurso]["model"]
     items = db.session.execute(db.select(model)).scalars().all()
 
-    return jsonify([item.serialize() for item in items]), 200
+    return jsonify({'total': len(items),tipo_recurso: [item.serialize() for item in items]}), 200
 
 
 @app.route('/api/<string:tipo_recurso>/<int:item_id>', methods=['GET'])
@@ -133,7 +132,7 @@ def get_recursos_id(tipo_recurso, item_id):
     if not item:
         return jsonify({'msg': f"ID {item_id} no encontrado en {tipo_recurso}"}), 404
 
-    return jsonify(item.serialize()), 200
+    return jsonify({tipo_recurso: item.serialize()}), 200
 
 
 @app.route('/api/<string:tipo_recurso>', methods=['POST'])
@@ -154,7 +153,7 @@ def post_recurso(tipo_recurso):
 
     db.session.add(nuevo_item)
     db.session.commit()
-    return jsonify(nuevo_item.serialize()), 201
+    return jsonify({tipo_recurso: nuevo_item.serialize()}), 201
 
 
 @app.route('/api/<string:tipo_recurso>/<int:item_id>', methods=['PUT'])
@@ -178,7 +177,7 @@ def put_recurso(tipo_recurso, item_id):
     item.image = data.get('image', item.image)
 
     db.session.commit()
-    return jsonify(item.serialize()), 201
+    return jsonify({tipo_recurso: item.serialize()}), 201
 
 
 @app.route('/api/<string:tipo_recurso>/<int:item_id>', methods=['DELETE'])
@@ -231,7 +230,7 @@ def post_favoritos(tipo_recurso, item_id):
         user_id=user_id, recurso_id=item_id, tipo=model['tipo'])
     db.session.add(nuevo_favorito)
     db.session.commit()
-    return jsonify(nuevo_favorito.serialize()), 201
+    return jsonify({'favoritos': nuevo_favorito.serialize()}), 201
 
 
 @app.route('/api/favoritos/<int:favorito_id>', methods=['DELETE'])

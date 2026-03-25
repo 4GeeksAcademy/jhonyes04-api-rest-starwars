@@ -38,6 +38,7 @@ class User(db.Model):
             "lastname": self.lastname,
             "email": self.email,
             "is_active": self.is_active,
+            "total_favoritos": len(self.favoritos),
             "favoritos": [favorito.serialize() for favorito in self.favoritos]
         }
 
